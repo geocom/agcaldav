@@ -247,7 +247,31 @@ module AgCalDAV
       errorhandling res
       find_todo uuid
     end
-
+    
+	def find_user
+		res = nil
+		http = Net::HTTP.new(@host, @port)
+		__create_http.start {|http|
+		  req = Net::HTTP::Propfind.new("#{@url}", initheader = {'Content-Type'=>'application/xml'})
+		  req.body = '<?xml version="1.0" encoding="utf-8" ?>
+		     <D:principal-match xmlns:D="DAV:">
+		       <D:self/>
+		       <D:prop>
+		         <C:current-user-principal
+		            xmlns:C="urn:ietf:params:xml:ns:caldav"/>
+		       </D:prop>
+		     </D:principal-match>'
+		  if not @authtype == 'digest'
+			req.basic_auth @user, @password
+		  else
+			req.add_field 'Authorization', digestauth('PROPFIND')
+		  end
+		  res = http.request( req )
+		}
+		
+		return res.body
+	end
+	
     def create_todo
       res = nil
       raise DuplicateError if entry_with_uuid_exists?(uuid)
