@@ -100,8 +100,7 @@ module AgCalDAV
 
     def find_event uuid
       begin
-        cache = ActiveSupport::Cache::MemoryStore.new()
-        res = cache.fetch(uuid)
+        res = AgCalDavStore.fetch(uuid)
       rescue
         
       end
@@ -117,7 +116,7 @@ module AgCalDAV
           res = http.request( req )
         }
         errorhandling res
-        cache.write(uuid, res, expires_in: 1.minute)
+        AgCalDavStore.write(uuid, res, expires_in: 1.minute)
       end
       
       begin
