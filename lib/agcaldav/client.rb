@@ -99,17 +99,27 @@ module AgCalDAV
     end
 
     def find_event uuid
-      res = nil
-      __create_http.start {|http|
-        req = Net::HTTP::Get.new("#{@url}/#{uuid}.ics")        
-        if not @authtype == 'digest'
-        	req.basic_auth @user, @password
-        else
-        	req.add_field 'Authorization', digestauth('GET')
-        end
-        res = http.request( req )
-      }  
-      errorhandling res
+      begin
+        cache = ActiveSupport::Cache::MemoryStore.new()
+        res = cache.fetch(uuid)
+      rescue
+        
+      end
+      if not res
+        res = nil
+        __create_http.start {|http|
+          req = Net::HTTP::Get.new("#{@url}/#{uuid}.ics")        
+          if not @authtype == 'digest'
+          	req.basic_auth @user, @password
+          else
+          	req.add_field 'Authorization', digestauth('GET')
+          end
+          res = http.request( req )
+        }
+        errorhandling res
+        cache.write(uuid, res, expires_in: 1.minute)
+      end
+      
       begin
       	r = Icalendar.parse(res.body)
       rescue
